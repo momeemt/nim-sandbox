@@ -11,3 +11,5 @@ bin           = @["opengl_sandbox"]
 # Dependencies
 
 requires "nim >= 1.4.8"
+requires "nimgl >= 1.3.2"
+requires "glm >= 1.1.1"
