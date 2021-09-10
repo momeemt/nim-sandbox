@@ -4,10 +4,24 @@ import nimgl/opengl
 import utils
 import utils/gl
 
-
 proc keyProc(window: GLFWWindow, key: int32, scancode: int32, action: int32, mods: int32): void {.cdecl.} =
   if key == GLFWKey.Escape and action == GLFWPress:
     window.setWindowShouldClose(true)
+
+proc triangle* (vpositions: array[3, Vec3f], vcolors: array[3, Vec4f], sizei: GLsizei): tuple[vao, vbo: uint32] =
+  glGenVertexArrays(sizei, result.vao.addr)
+  glGenBuffers(sizei, result.vbo.addr)
+  var vertices = [
+    vpositions[0][0], vpositions[0][1], vpositions[0][2],
+    vcolors[0][0], vcolors[0][1], vcolors[0][2], vcolors[0][3],
+    vpositions[1][0], vpositions[1][1], vpositions[1][2],
+    vcolors[1][0], vcolors[1][1], vcolors[1][2], vcolors[1][3],
+    vpositions[2][0], vpositions[2][1], vpositions[2][2],
+    vcolors[2][0], vcolors[2][1], vcolors[2][2], vcolors[2][3],
+  ]
+  glBindVertexArray(result.vao)
+  glBindBuffer(GL_ARRAY_BUFFER, result.vbo)
+  glBufferData(GL_ARRAY_BUFFER, cint(sizeof(cfloat) * vertices.len), vertices[0].addr, GL_STATIC_DRAW)
 
 
 proc main* =
@@ -33,33 +47,49 @@ proc main* =
   gl.printOpenGLVersion()
 
   # my first triangle!
-  let vpositions = [
-    vec3f(-0.5, -0.5, 0.0),
-    vec3f( 0.5, -0.5, 0.0),
-    vec3f( 0.0,  0.5, 0.0)
+  let vpositions1 = [
+    vec3f(-0.3, -0.3, 0.0),
+    vec3f( 0.3, -0.3, 0.0),
+    vec3f( 0.3,  0.3, 0.0)
   ]
-  let vcolors = [
-    vec4f(1, 0, 0, 1),
-    vec4f(0, 1, 0, 1),
-    vec4f(0, 0, 1, 1)
+  let vcolors1 = [
+    vec4f(1, 0, 0, 0),
+    vec4f(1, 0, 0, 0),
+    vec4f(1, 0, 0, 0)
   ]
-  var vertices = ...(
-    vpositions[0], vcolors[0],
-    vpositions[1], vcolors[1],
-    vpositions[2], vcolors[2]
-  ) # インターリブ配列 メモリアクセスを効率化してる
+
+  let vpositions2 = [
+    vec3f(-0.6, -0.6, 0.0),
+    vec3f(-0.2, -0.6, 0.0),
+    vec3f(-0.2, -0.2, 0.0)
+  ]
+  let vcolors2 = [
+    vec4f(0, 1, 0, 0),
+    vec4f(0, 1, 0, 0),
+    vec4f(0, 1, 0, 0)
+  ]
+
+  var
+    (vao1, vbo1) = triangle(vpositions1, vcolors1, 0)
+    (vao2, vbo2) = triangle(vpositions2, vcolors2, 1)
+  # var vertices = ...(
+  #   vpositions[0], vcolors[0],
+  #   vpositions[1], vcolors[1],
+  #   vpositions[2], vcolors[2],
+  #   vpositions[3], vcolors[3]
+  # ) # インターリブ配列 メモリアクセスを効率化してる
 
   # create vao
   # 頂点バッファ　バッファの配列 GPUの方にメモリを確保
-  var vao = gl.genVertexArrays(1)
-  # vaoを指定している 
-  glBindVertexArray(vao)
+  # var vao = gl.genVertexArrays(1)
+  # vaoを指定している
+  # glBindVertexArray(vao)
   
   # create vbo
   # バッファ vboはvaoに結びつく
-  var vbo = gl.genBuffers(1)
-  glBindBuffer(GL_ARRAY_BUFFER, vbo)
-  glBufferData(GL_ARRAY_BUFFER, cint(sizeof(cfloat) * vertices.len), vertices[0].addr, GL_STATIC_DRAW)
+  # var vbo = gl.genBuffers(1)
+  # glBindBuffer(GL_ARRAY_BUFFER, vbo)
+  # glBufferData(GL_ARRAY_BUFFER, cint(sizeof(cfloat) * vertices.len), vertices[0].addr, GL_STATIC_DRAW)
 
   # set vertex positions
   # 引数レジスタ　0番目を使う宣言 （最初は空いてない）
@@ -102,9 +132,10 @@ proc main* =
     glUseProgram(programID)
 
     # select vao
-    glBindVertexArray(vao)
-    glDrawArrays(GL_TRIANGLES, 0, 3) # draw triangle
-    
+    glBindVertexArray(vao1)
+    glBindVertexArray(vao2)
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 3) # draw triangle
+
     # deselect vao
     glBindVertexArray(0)
 
@@ -119,6 +150,7 @@ proc main* =
   w.destroyWindow()
   glfwTerminate()
 
-  glDeleteVertexArrays(1, vao.addr)
+  glDeleteVertexArrays(1, vao1.addr)
+  glDeleteVertexArrays(1, vao2.addr)
 
 main()
